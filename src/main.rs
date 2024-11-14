@@ -26,7 +26,7 @@ fn main() {
             near_value: None,
             open_slots: None,
             distance: Some(DistanceFilter::Worldwide),
-            count: None,
+            count: Some(u64::MAX),
         })
         .request_lobby_list(move |lobbies| {
             for lobby in lobbies.unwrap() {
@@ -51,10 +51,12 @@ fn main() {
 
         if let Ok(lobby) = join_rx.recv_timeout(Duration::from_millis(1000)) {
             println!(
-                "\t> Joined lobby {}! ({}/{} Players)",
+                "\t> Joined lobby {}! ({}/{} Players) - Type {} - Code {}",
                 lobby.raw(),
                 matchmaking.lobby_member_count(lobby),
-                matchmaking.lobby_member_limit(lobby).unwrap()
+                matchmaking.lobby_member_limit(lobby).unwrap(),
+                matchmaking.lobby_data(lobby, "type").unwrap(),
+                matchmaking.lobby_data(lobby, "code").unwrap(),
             );
         }
     }
