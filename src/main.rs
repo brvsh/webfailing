@@ -12,28 +12,27 @@ fn main() {
     let (lobby_tx, lobby_rx) = mpsc::channel();
     let (join_tx, join_rx) = mpsc::channel();
 
-    matchmaking
-        .set_lobby_list_filter(LobbyListFilter {
-            /*
-            string: Some(vec![
-                StringFilter(
-                    LobbyKey::new("code"), &lobby_code, StringFilterKind::Include
-                ),
-            ]),
-            */
-            string: None,
-            number: None,
-            near_value: None,
-            open_slots: None,
-            distance: Some(DistanceFilter::Worldwide),
-            count: Some(u64::MAX),
-        })
-        .request_lobby_list(move |lobbies| {
-            for lobby in lobbies.unwrap() {
-                let tx = lobby_tx.clone();
-                tx.send(lobby).unwrap();
-            }
-        });
+    for search_filter in (0..20).rev() {
+        let tx = lobby_tx.clone();
+        matchmaking
+            .set_lobby_list_filter(LobbyListFilter {
+                string: Some(vec![
+                    StringFilter(
+                        LobbyKey::new("server_browser_value"), &search_filter.to_string(), StringFilterKind::Include
+                    ),
+                ]),
+                number: None,
+                near_value: None,
+                open_slots: None,
+                distance: Some(DistanceFilter::Worldwide),
+                count: Some(u64::MAX),
+            })
+            .request_lobby_list(move |lobbies| {
+                for lobby in lobbies.unwrap() {
+                    tx.send(lobby).unwrap();
+                }
+            });
+    }
 
     loop {
         single.run_callbacks();
@@ -58,6 +57,30 @@ fn main() {
                 matchmaking.lobby_data(lobby, "type").unwrap(),
                 matchmaking.lobby_data(lobby, "code").unwrap(),
             );
+
+            for member in matchmaking.lobby_members(lobby) {
+                println!(
+                    "\t\tplayer>>> {}",
+                    member.raw()
+                );
+            }
+
+            /*
+            for peer in matchmaking.lobby_members(lobby).iter() {
+                if peer.raw() != client.user().steam_id().raw() {
+                    println!(
+                        "\t> Send packet to {} for {}: - {}",
+                        peer.raw(),
+                        lobby.raw(),
+                        networking.send_p2p_packet(
+                            *peer,
+                            SendType::Reliable,
+                            "r1xwashere-\0test\0".as_bytes(),
+                        )
+                    );
+                }
+            }
+            */
         }
     }
 }
